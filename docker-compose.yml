@@ -1,0 +1,12 @@
+services:
+  rdpwebportal:
+    image: rdpwebportal:latest
+    container_name: rdpwebportal
+    ports:
+      - "9090:9090"
+    volumes:
+      - rdpportal-data:/data
+    restart: unless-stopped
+
+volumes:
+  rdpportal-data:

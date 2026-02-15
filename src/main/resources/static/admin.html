@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RDP Web Portal — Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+        :root {
+            --bg-deep: #0a0e14;
+            --bg-surface: #111820;
+            --bg-card: #161d27;
+            --bg-card-hover: #1a2233;
+            --border-dim: #1e2a3a;
+            --border-accent: #2a3a4e;
+            --text-primary: #d4dae3;
+            --text-secondary: #6b7a8d;
+            --text-muted: #3d4f63;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --accent-bright: #60a5fa;
+            --error: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.08);
+            --error-border: rgba(239, 68, 68, 0.25);
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.08);
+            --success-border: rgba(34, 197, 94, 0.25);
+            --warning: #f59e0b;
+            --font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+            --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+        }
+
+        html { height: 100%; }
+        body {
+            min-height: 100vh;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);
+        }
+
+        /* ── Header ── */
+        .header {
+            position: sticky; top: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 1.5rem; height: 56px;
+            background: rgba(10, 14, 20, 0.88);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-dim);
+        }
+        .header-left { display: flex; align-items: center; gap: 0.75rem; }
+        .header-logo {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, var(--bg-card), var(--bg-surface));
+            border: 1px solid var(--border-accent); flex-shrink: 0;
+        }
+        .header-logo svg { width: 16px; height: 16px; color: var(--accent-bright); }
+        .header-title {
+            font-family: var(--font-mono); font-size: 0.82rem; font-weight: 600;
+            letter-spacing: 0.06em; text-transform: uppercase;
+        }
+        .header-right { display: flex; align-items: center; gap: 0.75rem; }
+        .user-info { display: flex; align-items: center; gap: 0.5rem; font-size: 0.82rem; color: var(--text-secondary); }
+        .user-name { color: var(--text-primary); font-weight: 500; }
+        .role-badge {
+            font-family: var(--font-mono); font-size: 0.6rem; font-weight: 600;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            padding: 0.2rem 0.5rem; border-radius: 4px;
+            background: var(--accent-glow); color: var(--accent-bright);
+            border: 1px solid rgba(59,130,246,0.2);
+        }
+        .header-btn {
+            font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500;
+            letter-spacing: 0.05em; text-transform: uppercase;
+            padding: 0.4rem 0.75rem; border-radius: 6px;
+            border: 1px solid var(--border-dim); background: var(--bg-card);
+            color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+            text-decoration: none; display: inline-flex; align-items: center; gap: 0.35rem;
+        }
+        .header-btn:hover { border-color: var(--border-accent); color: var(--text-primary); background: var(--bg-card-hover); }
+        .header-btn svg { width: 13px; height: 13px; }
+        .header-btn.dash-link { border-color: rgba(59,130,246,0.2); color: var(--accent-bright); }
+        .header-btn.dash-link:hover { background: var(--accent-glow); border-color: rgba(59,130,246,0.35); }
+
+        /* ── Main ── */
+        .main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.5rem 3rem; }
+
+        /* ── Tabs ── */
+        .tabs {
+            display: inline-flex; background: var(--bg-card); border: 1px solid var(--border-dim);
+            border-radius: 8px; padding: 3px; margin-bottom: 1.5rem;
+        }
+        .tab-btn {
+            font-family: var(--font-mono); font-size: 0.72rem; font-weight: 500;
+            letter-spacing: 0.06em; text-transform: uppercase;
+            padding: 0.45rem 1rem; border-radius: 6px; border: none;
+            background: transparent; color: var(--text-secondary);
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .tab-btn:hover { color: var(--text-primary); }
+        .tab-btn.active { background: var(--accent); color: #fff; box-shadow: 0 0 12px var(--accent-glow); }
+
+        .tab-panel { display: none; animation: fadeIn 0.25s ease-out; }
+        .tab-panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Toolbar ── */
+        .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+        .section-label {
+            font-family: var(--font-mono); font-size: 0.65rem; font-weight: 500;
+            letter-spacing: 0.14em; text-transform: uppercase; color: var(--text-muted);
+        }
+        .create-btn {
+            font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600;
+            letter-spacing: 0.05em; text-transform: uppercase;
+            padding: 0.5rem 0.9rem; border-radius: 7px; border: none;
+            background: var(--accent); color: #fff; cursor: pointer;
+            transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.35rem;
+        }
+        .create-btn:hover { background: var(--accent-bright); box-shadow: 0 0 16px var(--accent-glow); }
+        .create-btn svg { width: 14px; height: 14px; }
+
+        /* ── Table ── */
+        .table-wrap {
+            overflow-x: auto; border: 1px solid var(--border-dim);
+            border-radius: 10px; background: var(--bg-card);
+        }
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        thead th {
+            font-family: var(--font-mono); font-size: 0.62rem; font-weight: 600;
+            letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted);
+            padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-dim);
+            background: var(--bg-surface); white-space: nowrap;
+        }
+        thead th:first-child { border-radius: 9px 0 0 0; }
+        thead th:last-child { border-radius: 0 9px 0 0; }
+        tbody td {
+            font-size: 0.82rem; padding: 0.65rem 1rem;
+            border-bottom: 1px solid rgba(30,42,58,0.5); vertical-align: middle;
+        }
+        tbody tr:last-child td { border-bottom: none; }
+        tbody tr { transition: background 0.15s; }
+        tbody tr:hover { background: var(--bg-card-hover); }
+        .mono { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-secondary); }
+
+        .badge {
+            font-family: var(--font-mono); font-size: 0.58rem; font-weight: 600;
+            letter-spacing: 0.08em; text-transform: uppercase;
+            padding: 0.18rem 0.45rem; border-radius: 4px; display: inline-block;
+        }
+        .badge-admin { background: var(--accent-glow); color: var(--accent-bright); border: 1px solid rgba(59,130,246,0.2); }
+        .badge-user { background: rgba(107,122,141,0.1); color: var(--text-secondary); border: 1px solid rgba(107,122,141,0.15); }
+        .badge-yes { background: var(--success-bg); color: var(--success); border: 1px solid var(--success-border); }
+        .badge-no { background: var(--error-bg); color: var(--error); border: 1px solid var(--error-border); }
+
+        .row-actions { display: flex; gap: 0.4rem; }
+        .row-btn {
+            font-family: var(--font-mono); font-size: 0.62rem; font-weight: 500;
+            letter-spacing: 0.04em; text-transform: uppercase;
+            padding: 0.3rem 0.55rem; border-radius: 5px;
+            border: 1px solid var(--border-dim); background: var(--bg-surface);
+            color: var(--text-secondary); cursor: pointer; transition: all 0.15s;
+        }
+        .row-btn:hover { border-color: var(--border-accent); color: var(--text-primary); }
+        .row-btn.danger { border-color: var(--error-border); color: var(--error); }
+        .row-btn.danger:hover { background: var(--error-bg); }
+
+        .loading-row td { text-align: center; padding: 2rem; }
+        .loading-row .loading-spinner {
+            width: 22px; height: 22px; border: 2px solid var(--border-dim);
+            border-top-color: var(--accent); border-radius: 50%;
+            animation: spin 0.8s linear infinite; display: inline-block;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .empty-row td {
+            text-align: center; padding: 2.5rem 1rem;
+            font-size: 0.82rem; color: var(--text-muted);
+        }
+
+        /* ── Toast ── */
+        .toast {
+            position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 1000;
+            font-size: 0.82rem; font-weight: 500;
+            padding: 0.7rem 1rem; border-radius: 8px;
+            display: flex; align-items: center; gap: 0.5rem;
+            animation: toastIn 0.3s ease-out;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .toast.success { background: #0d3320; border: 1px solid var(--success-border); color: var(--success); }
+        .toast.error { background: #3b1111; border: 1px solid var(--error-border); color: var(--error); }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed; inset: 0; z-index: 500;
+            background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 1.5rem; animation: fadeIn 0.2s ease-out;
+        }
+        .modal-overlay[hidden] { display: none; }
+        .modal {
+            background: var(--bg-card); border: 1px solid var(--border-dim);
+            border-radius: 12px; padding: 1.75rem; width: 100%; max-width: 440px;
+            box-shadow: 0 16px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.02) inset;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-title {
+            font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600;
+            letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1.25rem;
+            color: var(--text-primary);
+        }
+        .field { margin-bottom: 1rem; }
+        .field label {
+            display: block; font-family: var(--font-mono); font-size: 0.65rem;
+            font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-secondary); margin-bottom: 0.4rem;
+        }
+        .field input, .field select, .field textarea {
+            width: 100%; padding: 0.6rem 0.75rem;
+            font-family: var(--font-sans); font-size: 0.88rem;
+            color: var(--text-primary); background: var(--bg-surface);
+            border: 1px solid var(--border-dim); border-radius: 7px;
+            outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .field input:focus, .field select:focus, .field textarea:focus {
+            border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .field input::placeholder, .field textarea::placeholder { color: var(--text-muted); }
+        .field select { cursor: pointer; }
+        .field select option { background: var(--bg-surface); color: var(--text-primary); }
+        .field textarea { resize: vertical; min-height: 60px; }
+        .field-hint { font-size: 0.7rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+        .field-check {
+            display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;
+        }
+        .field-check input[type="checkbox"] {
+            width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
+        }
+        .field-check label {
+            font-family: var(--font-mono); font-size: 0.7rem; font-weight: 500;
+            letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary);
+            cursor: pointer; margin-bottom: 0;
+        }
+
+        .modal-error {
+            font-size: 0.78rem; color: var(--error); background: var(--error-bg);
+            border: 1px solid var(--error-border); border-radius: 7px;
+            padding: 0.55rem 0.75rem; margin-bottom: 1rem;
+        }
+        .modal-error[hidden] { display: none; }
+
+        .modal-actions { display: flex; gap: 0.6rem; justify-content: flex-end; margin-top: 1.25rem; }
+        .modal-btn {
+            font-family: var(--font-mono); font-size: 0.72rem; font-weight: 600;
+            letter-spacing: 0.05em; text-transform: uppercase;
+            padding: 0.55rem 1rem; border-radius: 7px; cursor: pointer; transition: all 0.2s;
+        }
+        .modal-btn.cancel {
+            border: 1px solid var(--border-dim); background: var(--bg-surface); color: var(--text-secondary);
+        }
+        .modal-btn.cancel:hover { border-color: var(--border-accent); color: var(--text-primary); }
+        .modal-btn.submit { border: none; background: var(--accent); color: #fff; }
+        .modal-btn.submit:hover { background: var(--accent-bright); box-shadow: 0 0 16px var(--accent-glow); }
+        .modal-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* ── Confirm dialog ── */
+        .confirm-text { font-size: 0.88rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.5rem; }
+        .confirm-name { color: var(--text-primary); font-weight: 600; }
+        .modal-btn.danger { background: var(--error); }
+        .modal-btn.danger:hover { background: #dc2626; box-shadow: 0 0 16px rgba(239,68,68,0.2); }
+
+        /* ── Icon picker ── */
+        .icon-picker {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;
+        }
+        .icon-option {
+            display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+            padding: 0.6rem 0.3rem; border-radius: 8px;
+            border: 2px solid var(--border-dim); background: var(--bg-surface);
+            cursor: pointer; transition: all 0.15s;
+        }
+        .icon-option:hover { border-color: var(--border-accent); background: var(--bg-card-hover); }
+        .icon-option.selected { border-color: var(--accent); background: var(--accent-glow); box-shadow: 0 0 12px var(--accent-glow); }
+        .icon-option svg { width: 32px; height: 32px; color: var(--text-secondary); transition: color 0.15s; }
+        .icon-option.selected svg { color: var(--accent-bright); }
+        .icon-option-label {
+            font-family: var(--font-mono); font-size: 0.55rem; font-weight: 500;
+            letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted);
+            text-align: center; line-height: 1.2;
+        }
+        .icon-option.selected .icon-option-label { color: var(--accent-bright); }
+
+        @media (max-width: 640px) {
+            .header { padding: 0 1rem; }
+            .header-title { display: none; }
+            .user-name { display: none; }
+            .main { padding: 1rem 1rem 2rem; }
+            .tabs { width: 100%; }
+            .tab-btn { flex: 1; text-align: center; padding: 0.45rem 0.5rem; font-size: 0.65rem; }
+            .icon-picker { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<header class="header">
+    <div class="header-left">
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/>
+            </svg>
+        </div>
+        <span class="header-title">RDP Web Portal</span>
+    </div>
+    <div class="header-right">
+        <div class="user-info">
+            <span class="user-name" id="userDisplay"></span>
+            <span class="role-badge" id="roleBadge" style="display:none"></span>
+        </div>
+        <a href="/" class="header-btn dash-link">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Dashboard
+        </a>
+        <button class="header-btn" id="logoutBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
+        </button>
+    </div>
+</header>
+
+<main class="main">
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="users">Users</button>
+        <button class="tab-btn" data-tab="machines">Machines</button>
+        <button class="tab-btn" data-tab="assignments">Assignments</button>
+    </div>
+
+    <!-- ═══ USERS TAB ═══ -->
+    <div class="tab-panel active" id="panel-users">
+        <div class="toolbar">
+            <span class="section-label">User Accounts</span>
+            <button class="create-btn" id="createUserBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Create User
+            </button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>ID</th><th>Username</th><th>Display Name</th><th>Role</th><th>Enabled</th><th>Actions</th></tr></thead>
+                <tbody id="usersBody">
+                    <tr class="loading-row"><td colspan="6"><div class="loading-spinner"></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ═══ MACHINES TAB ═══ -->
+    <div class="tab-panel" id="panel-machines">
+        <div class="toolbar">
+            <span class="section-label">Machines</span>
+            <button class="create-btn" id="createMachineBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Create Machine
+            </button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>ID</th><th>Display Name</th><th>Hostname</th><th>Port</th><th>Enabled</th><th>Actions</th></tr></thead>
+                <tbody id="machinesBody">
+                    <tr class="loading-row"><td colspan="6"><div class="loading-spinner"></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ═══ ASSIGNMENTS TAB ═══ -->
+    <div class="tab-panel" id="panel-assignments">
+        <div class="toolbar">
+            <span class="section-label">Assignments</span>
+            <button class="create-btn" id="createAssignBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Assign Machine
+            </button>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>ID</th><th>User</th><th>Machine</th><th>RDP User</th><th>RDP Domain</th><th>Multimon</th><th>Password</th><th>Actions</th></tr></thead>
+                <tbody id="assignBody">
+                    <tr class="loading-row"><td colspan="8"><div class="loading-spinner"></div></td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- ═══ MODAL ═══ -->
+<div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+(function() {
+
+    /* ── Helpers ── */
+    function csrf() {
+        var m = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+        return m ? decodeURIComponent(m[1]) : null;
+    }
+    function api(url, opts) {
+        opts = opts || {};
+        var h = opts.headers || {};
+        var t = csrf();
+        if (t) h['X-XSRF-TOKEN'] = t;
+        if (opts.body && typeof opts.body === 'object') {
+            h['Content-Type'] = 'application/json';
+            opts.body = JSON.stringify(opts.body);
+        }
+        opts.headers = h;
+        opts.credentials = 'same-origin';
+        return fetch(url, opts);
+    }
+    function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+    /* ── Toast ── */
+    function toast(msg, type) {
+        var el = document.createElement('div');
+        el.className = 'toast ' + (type || 'success');
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(function() { el.remove(); }, 3000);
+    }
+
+    /* ── Modal ── */
+    var overlay = document.getElementById('modalOverlay');
+    var content = document.getElementById('modalContent');
+
+    function openModal(html) {
+        content.innerHTML = html;
+        overlay.hidden = false;
+    }
+    function closeModal() { overlay.hidden = true; content.innerHTML = ''; }
+
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) closeModal(); });
+    document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeModal(); });
+
+    /* ── Tabs ── */
+    var tabBtns = document.querySelectorAll('.tab-btn');
+    tabBtns.forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            tabBtns.forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+        });
+    });
+
+    /* ── Icon definitions ── */
+    var MACHINE_ICONS = {
+        'workstation-windows': {
+            label: 'Workstation\nWindows',
+            svg: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="40" height="28" rx="3" stroke="currentColor" stroke-width="2.5"/><line x1="16" y1="36" x2="32" y2="36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="32" x2="24" y2="36" stroke="currentColor" stroke-width="2.5"/><path d="M14 11l8.5-1.2v8.7H14V11zm9.5-1.4l10-1.4v10.3h-10V9.6zm-9.5 9.9h8.5v8.5L14 27V19.5zm9.5 0h10V30l-10-1.4V19.5z" fill="currentColor" opacity="0.7"/></svg>'
+        },
+        'workstation-ubuntu': {
+            label: 'Workstation\nUbuntu',
+            svg: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="40" height="28" rx="3" stroke="currentColor" stroke-width="2.5"/><line x1="16" y1="36" x2="32" y2="36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="32" x2="24" y2="36" stroke="currentColor" stroke-width="2.5"/><circle cx="24" cy="18" r="7" stroke="currentColor" stroke-width="2" opacity="0.7"/><circle cx="24" cy="11" r="1.8" fill="currentColor" opacity="0.7"/><circle cx="17.9" cy="21.5" r="1.8" fill="currentColor" opacity="0.7"/><circle cx="30.1" cy="21.5" r="1.8" fill="currentColor" opacity="0.7"/></svg>'
+        },
+        'workstation-linux': {
+            label: 'Workstation\nLinux',
+            svg: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="40" height="28" rx="3" stroke="currentColor" stroke-width="2.5"/><line x1="16" y1="36" x2="32" y2="36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="32" x2="24" y2="36" stroke="currentColor" stroke-width="2.5"/><path d="M24 10c-1.5 0-3 1.2-3 3.5 0 1.5.4 2.8.8 4-.8.5-2.3 1.8-2.3 3.5 0 1 .3 1.8.8 2.3-.3.4-.8 1-1.3 1.7l2 1c.4-.5.7-1 1-1.3.6.2 1.3.3 2 .3s1.4-.1 2-.3c.3.4.6.8 1 1.3l2-1c-.5-.7-1-1.3-1.3-1.7.5-.5.8-1.3.8-2.3 0-1.7-1.5-3-2.3-3.5.4-1.2.8-2.5.8-4 0-2.3-1.5-3.5-3-3.5z" fill="currentColor" opacity="0.7"/></svg>'
+        },
+        'workstation-generic': {
+            label: 'Workstation\nGeneric',
+            svg: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="4" width="40" height="28" rx="3" stroke="currentColor" stroke-width="2.5"/><line x1="16" y1="36" x2="32" y2="36" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><line x1="24" y1="32" x2="24" y2="36" stroke="currentColor" stroke-width="2.5"/><rect x="14" y="12" width="20" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5" opacity="0.5"/><line x1="17" y1="16" x2="25" y2="16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><line x1="17" y1="20" x2="22" y2="20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/></svg>'
+        },
+        'server-windows': {
+            label: 'Server\nWindows',
+            svg: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="4" width="28" height="40" rx="3" stroke="currentColor" stroke-width="2.5"/><line x1="10" y1="17" x2="38" y2="17" stroke="currentColor" stroke-width="2"/><line x1="10" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="2"/><circle cx="33" cy="10.5" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="33" cy="23.5" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="33" cy="36.5" r="1.5" fill="currentColor" opacity="0.5"/><line x1="15" y1="10.5" x2="22" y2="10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><line x1="15" y1="23.5" x2="22" y2="23.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><path d="M17 34l4.5-.6v4.6H17V34zm5-.7L27 32.5v5.5h-5v-4.7zm-5 5.2h4.5v4.5l-4.5-.7v-3.8zm5 0h5v5l-5-.7v-4.3z" fill="currentColor" opacity="0" stroke="none"/><path d="M16 35.5l3.5-.5v3.5H16V35.5zm4-.6l4.5-.6v4.2h-4.5v-3.6z" fill="currentColor" opacity="0.6"/><path d="M16 38.8h3.5V42l-3.5-.5v-2.7zm4 0h4.5V43l-4.5-.6v-3.6z" fill="currentColor" opacity="0.6"/></svg>'
+        },
+        'server-ubuntu': {
+            label: 'Server\nUbuntu',
+            svg: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="4" width="28" height="40" rx="3" stroke="currentColor" stroke-width="2.5"/><line x1="10" y1="17" x2="38" y2="17" stroke="currentColor" stroke-width="2"/><line x1="10" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="2"/><circle cx="33" cy="10.5" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="33" cy="23.5" r="1.5" fill="currentColor" opacity="0.5"/><line x1="15" y1="10.5" x2="22" y2="10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><line x1="15" y1="23.5" x2="22" y2="23.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><circle cx="24" cy="37" r="5" stroke="currentColor" stroke-width="1.5" opacity="0.7"/><circle cx="24" cy="32" r="1.3" fill="currentColor" opacity="0.7"/><circle cx="19.6" cy="39.5" r="1.3" fill="currentColor" opacity="0.7"/><circle cx="28.4" cy="39.5" r="1.3" fill="currentColor" opacity="0.7"/></svg>'
+        },
+        'server-linux': {
+            label: 'Server\nLinux',
+            svg: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="4" width="28" height="40" rx="3" stroke="currentColor" stroke-width="2.5"/><line x1="10" y1="17" x2="38" y2="17" stroke="currentColor" stroke-width="2"/><line x1="10" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="2"/><circle cx="33" cy="10.5" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="33" cy="23.5" r="1.5" fill="currentColor" opacity="0.5"/><line x1="15" y1="10.5" x2="22" y2="10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><line x1="15" y1="23.5" x2="22" y2="23.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><path d="M24 31c-1.2 0-2.4 1-2.4 2.8 0 1.2.3 2.2.6 3.2-.6.4-1.8 1.4-1.8 2.8 0 .8.2 1.4.6 1.8-.2.3-.6.8-1 1.4l1.6.8c.3-.4.6-.8.8-1 .5.2 1 .2 1.6.2s1.1-.1 1.6-.2c.2.3.5.6.8 1l1.6-.8c-.4-.6-.8-1-1-1.4.4-.4.6-1 .6-1.8 0-1.4-1.2-2.4-1.8-2.8.3-1 .6-2 .6-3.2 0-1.8-1.2-2.8-2.4-2.8z" fill="currentColor" opacity="0.7"/></svg>'
+        },
+        'server-generic': {
+            label: 'Server\nGeneric',
+            svg: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="4" width="28" height="40" rx="3" stroke="currentColor" stroke-width="2.5"/><line x1="10" y1="17" x2="38" y2="17" stroke="currentColor" stroke-width="2"/><line x1="10" y1="30" x2="38" y2="30" stroke="currentColor" stroke-width="2"/><circle cx="33" cy="10.5" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="33" cy="23.5" r="1.5" fill="currentColor" opacity="0.5"/><circle cx="33" cy="36.5" r="1.5" fill="currentColor" opacity="0.5"/><line x1="15" y1="10.5" x2="22" y2="10.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><line x1="15" y1="23.5" x2="22" y2="23.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/><line x1="15" y1="36.5" x2="22" y2="36.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/></svg>'
+        }
+    };
+
+    function getIconSvg(key) {
+        return (MACHINE_ICONS[key] && MACHINE_ICONS[key].svg) || MACHINE_ICONS['workstation-generic'].svg;
+    }
+
+    /* ── Data stores ── */
+    var users = [], machines = [], assignments = [];
+
+    /* ════════════════════════════════════════
+       USERS
+    ════════════════════════════════════════ */
+    function renderUsers() {
+        var tb = document.getElementById('usersBody');
+        if (users.length === 0) {
+            tb.innerHTML = '<tr class="empty-row"><td colspan="6">No users found</td></tr>';
+            return;
+        }
+        tb.innerHTML = users.map(function(u) {
+            return '<tr>' +
+                '<td class="mono">' + u.id + '</td>' +
+                '<td>' + esc(u.username) + '</td>' +
+                '<td>' + esc(u.displayName) + '</td>' +
+                '<td><span class="badge ' + (u.role === 'ADMIN' ? 'badge-admin' : 'badge-user') + '">' + u.role + '</span></td>' +
+                '<td><span class="badge ' + (u.enabled ? 'badge-yes' : 'badge-no') + '">' + (u.enabled ? 'Yes' : 'No') + '</span></td>' +
+                '<td class="row-actions">' +
+                    '<button class="row-btn" onclick="App.editUser(' + u.id + ')">Edit</button>' +
+                    '<button class="row-btn danger" onclick="App.deleteUser(' + u.id + ',\'' + esc(u.username).replace(/'/g, "\\'") + '\')">Delete</button>' +
+                '</td></tr>';
+        }).join('');
+    }
+
+    function loadUsers() {
+        document.getElementById('usersBody').innerHTML = '<tr class="loading-row"><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+        api('/api/admin/users').then(function(r) { return r.json(); }).then(function(d) {
+            users = d; renderUsers();
+        });
+    }
+
+    function userForm(u) {
+        var edit = !!u;
+        var title = edit ? 'Edit User' : 'Create User';
+        openModal(
+            '<div class="modal-title">' + title + '</div>' +
+            '<div class="modal-error" id="modalErr" hidden></div>' +
+            '<div class="field"><label>Username</label><input id="mUsername" value="' + esc(edit ? u.username : '') + '" placeholder="Enter username"></div>' +
+            '<div class="field"><label>Password' + (edit ? ' (leave blank to keep)' : '') + '</label><input id="mPassword" type="password" placeholder="' + (edit ? 'Unchanged' : 'Enter password') + '"></div>' +
+            '<div class="field"><label>Display Name</label><input id="mDisplayName" value="' + esc(edit ? u.displayName : '') + '" placeholder="Full name"></div>' +
+            '<div class="field"><label>Role</label><select id="mRole"><option value="USER"' + (edit && u.role === 'USER' ? ' selected' : '') + '>USER</option><option value="ADMIN"' + (edit && u.role === 'ADMIN' ? ' selected' : '') + '>ADMIN</option></select></div>' +
+            '<div class="field-check"><input type="checkbox" id="mEnabled"' + (!edit || u.enabled ? ' checked' : '') + '><label for="mEnabled">Enabled</label></div>' +
+            '<div class="modal-actions">' +
+                '<button class="modal-btn cancel" onclick="App.closeModal()">Cancel</button>' +
+                '<button class="modal-btn submit" id="modalSubmit">' + (edit ? 'Update' : 'Create') + '</button>' +
+            '</div>'
+        );
+        document.getElementById('modalSubmit').addEventListener('click', function() {
+            var body = {
+                username: document.getElementById('mUsername').value.trim(),
+                password: document.getElementById('mPassword').value,
+                displayName: document.getElementById('mDisplayName').value.trim(),
+                role: document.getElementById('mRole').value,
+                enabled: document.getElementById('mEnabled').checked
+            };
+            if (!body.username || !body.displayName) { showErr('Username and display name are required.'); return; }
+            if (!edit && !body.password) { showErr('Password is required.'); return; }
+            var url = edit ? '/api/admin/users/' + u.id : '/api/admin/users';
+            var method = edit ? 'PUT' : 'POST';
+            this.disabled = true;
+            api(url, { method: method, body: body }).then(function(r) {
+                if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+                closeModal(); toast(edit ? 'User updated' : 'User created'); loadUsers();
+            }).catch(function(e) { showErr(e.message); document.getElementById('modalSubmit').disabled = false; });
+        });
+    }
+
+    function showErr(msg) {
+        var el = document.getElementById('modalErr');
+        el.textContent = msg; el.hidden = false;
+    }
+
+    function confirmDeleteUser(id, name) {
+        openModal(
+            '<div class="modal-title">Delete User</div>' +
+            '<p class="confirm-text">Permanently delete user <span class="confirm-name">' + esc(name) + '</span>? This will also remove all their machine assignments.</p>' +
+            '<div class="modal-actions">' +
+                '<button class="modal-btn cancel" onclick="App.closeModal()">Cancel</button>' +
+                '<button class="modal-btn danger" id="modalSubmit">Delete</button>' +
+            '</div>'
+        );
+        document.getElementById('modalSubmit').addEventListener('click', function() {
+            this.disabled = true;
+            api('/api/admin/users/' + id, { method: 'DELETE' }).then(function() {
+                closeModal(); toast('User deleted'); loadUsers(); loadAssignments();
+            });
+        });
+    }
+
+    /* ════════════════════════════════════════
+       MACHINES
+    ════════════════════════════════════════ */
+    function renderMachines() {
+        var tb = document.getElementById('machinesBody');
+        if (machines.length === 0) {
+            tb.innerHTML = '<tr class="empty-row"><td colspan="6">No machines found</td></tr>';
+            return;
+        }
+        tb.innerHTML = machines.map(function(m) {
+            return '<tr>' +
+                '<td class="mono">' + m.id + '</td>' +
+                '<td>' + esc(m.displayName) + '</td>' +
+                '<td class="mono">' + esc(m.hostname) + '</td>' +
+                '<td class="mono">' + m.rdpPort + '</td>' +
+                '<td><span class="badge ' + (m.enabled ? 'badge-yes' : 'badge-no') + '">' + (m.enabled ? 'Yes' : 'No') + '</span></td>' +
+                '<td class="row-actions">' +
+                    '<button class="row-btn" onclick="App.editMachine(' + m.id + ')">Edit</button>' +
+                    '<button class="row-btn danger" onclick="App.deleteMachine(' + m.id + ',\'' + esc(m.displayName).replace(/'/g, "\\'") + '\')">Delete</button>' +
+                '</td></tr>';
+        }).join('');
+    }
+
+    function loadMachines() {
+        document.getElementById('machinesBody').innerHTML = '<tr class="loading-row"><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+        api('/api/admin/machines').then(function(r) { return r.json(); }).then(function(d) {
+            machines = d; renderMachines();
+        });
+    }
+
+    function machineForm(m) {
+        var edit = !!m;
+        var currentIcon = (edit && m.icon) ? m.icon : 'workstation-generic';
+
+        var iconGridHtml = '<div class="icon-picker" id="iconPicker">';
+        Object.keys(MACHINE_ICONS).forEach(function(key) {
+            var ic = MACHINE_ICONS[key];
+            var sel = (key === currentIcon) ? ' selected' : '';
+            iconGridHtml += '<div class="icon-option' + sel + '" data-icon="' + key + '">' +
+                ic.svg +
+                '<span class="icon-option-label">' + esc(ic.label).replace('\n', '<br>') + '</span>' +
+            '</div>';
+        });
+        iconGridHtml += '</div>';
+
+        openModal(
+            '<div class="modal-title">' + (edit ? 'Edit Machine' : 'Create Machine') + '</div>' +
+            '<div class="modal-error" id="modalErr" hidden></div>' +
+            '<div class="field"><label>Display Name</label><input id="mDisplayName" value="' + esc(edit ? m.displayName : '') + '" placeholder="e.g. Dev Workstation"></div>' +
+            '<div class="field"><label>Hostname / IP</label><input id="mHostname" value="' + esc(edit ? m.hostname : '') + '" placeholder="e.g. 192.168.1.50"></div>' +
+            '<div class="field"><label>Description</label><textarea id="mDesc" placeholder="Optional description">' + esc(edit ? m.description : '') + '</textarea></div>' +
+            '<div class="field"><label>Icon</label>' + iconGridHtml + '</div>' +
+            '<div class="field"><label>RDP Port</label><input id="mPort" type="number" value="' + (edit ? m.rdpPort : 3389) + '"></div>' +
+            '<div class="field-check"><input type="checkbox" id="mEnabled"' + (!edit || m.enabled ? ' checked' : '') + '><label for="mEnabled">Enabled</label></div>' +
+            '<div class="modal-actions">' +
+                '<button class="modal-btn cancel" onclick="App.closeModal()">Cancel</button>' +
+                '<button class="modal-btn submit" id="modalSubmit">' + (edit ? 'Update' : 'Create') + '</button>' +
+            '</div>'
+        );
+
+        // Icon picker selection
+        var selectedIcon = currentIcon;
+        document.getElementById('iconPicker').addEventListener('click', function(e) {
+            var opt = e.target.closest('.icon-option');
+            if (!opt) return;
+            document.querySelectorAll('#iconPicker .icon-option').forEach(function(o) { o.classList.remove('selected'); });
+            opt.classList.add('selected');
+            selectedIcon = opt.dataset.icon;
+        });
+
+        document.getElementById('modalSubmit').addEventListener('click', function() {
+            var body = {
+                displayName: document.getElementById('mDisplayName').value.trim(),
+                hostname: document.getElementById('mHostname').value.trim(),
+                description: document.getElementById('mDesc').value.trim(),
+                icon: selectedIcon,
+                rdpPort: parseInt(document.getElementById('mPort').value) || 3389,
+                enabled: document.getElementById('mEnabled').checked
+            };
+            if (!body.displayName || !body.hostname) { showErr('Name and hostname are required.'); return; }
+            var url = edit ? '/api/admin/machines/' + m.id : '/api/admin/machines';
+            this.disabled = true;
+            api(url, { method: edit ? 'PUT' : 'POST', body: body }).then(function(r) {
+                if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+                closeModal(); toast(edit ? 'Machine updated' : 'Machine created'); loadMachines();
+            }).catch(function(e) { showErr(e.message); document.getElementById('modalSubmit').disabled = false; });
+        });
+    }
+
+    function confirmDeleteMachine(id, name) {
+        openModal(
+            '<div class="modal-title">Delete Machine</div>' +
+            '<p class="confirm-text">Permanently delete <span class="confirm-name">' + esc(name) + '</span>? All assignments to this machine will be removed.</p>' +
+            '<div class="modal-actions">' +
+                '<button class="modal-btn cancel" onclick="App.closeModal()">Cancel</button>' +
+                '<button class="modal-btn danger" id="modalSubmit">Delete</button>' +
+            '</div>'
+        );
+        document.getElementById('modalSubmit').addEventListener('click', function() {
+            this.disabled = true;
+            api('/api/admin/machines/' + id, { method: 'DELETE' }).then(function() {
+                closeModal(); toast('Machine deleted'); loadMachines(); loadAssignments();
+            });
+        });
+    }
+
+    /* ════════════════════════════════════════
+       ASSIGNMENTS
+    ════════════════════════════════════════ */
+    function renderAssignments() {
+        var tb = document.getElementById('assignBody');
+        if (assignments.length === 0) {
+            tb.innerHTML = '<tr class="empty-row"><td colspan="8">No assignments found</td></tr>';
+            return;
+        }
+        tb.innerHTML = assignments.map(function(a) {
+            return '<tr>' +
+                '<td class="mono">' + a.id + '</td>' +
+                '<td>' + esc(a.username) + '</td>' +
+                '<td>' + esc(a.machineName) + '</td>' +
+                '<td class="mono">' + esc(a.rdpUsername || '—') + '</td>' +
+                '<td class="mono">' + esc(a.rdpDomain || '—') + '</td>' +
+                '<td><span class="badge ' + (a.useMultimon ? 'badge-yes' : 'badge-no') + '">' + (a.useMultimon ? 'Yes' : 'No') + '</span></td>' +
+                '<td><span class="badge ' + (a.hasPassword ? 'badge-yes' : 'badge-no') + '">' + (a.hasPassword ? 'Set' : 'None') + '</span></td>' +
+                '<td class="row-actions">' +
+                    '<button class="row-btn danger" onclick="App.deleteAssign(' + a.id + ')">Remove</button>' +
+                '</td></tr>';
+        }).join('');
+    }
+
+    function loadAssignments() {
+        document.getElementById('assignBody').innerHTML = '<tr class="loading-row"><td colspan="8"><div class="loading-spinner"></div></td></tr>';
+        api('/api/admin/assignments').then(function(r) { return r.json(); }).then(function(d) {
+            assignments = d; renderAssignments();
+        });
+    }
+
+    function assignForm() {
+        var uOpts = users.map(function(u) { return '<option value="' + u.id + '">' + esc(u.username) + ' — ' + esc(u.displayName) + '</option>'; }).join('');
+        var mOpts = machines.map(function(m) { return '<option value="' + m.id + '">' + esc(m.displayName) + ' (' + esc(m.hostname) + ')</option>'; }).join('');
+        openModal(
+            '<div class="modal-title">Assign Machine</div>' +
+            '<div class="modal-error" id="modalErr" hidden></div>' +
+            '<div class="field"><label>User</label><select id="mUserId">' + uOpts + '</select></div>' +
+            '<div class="field"><label>Machine</label><select id="mMachineId">' + mOpts + '</select></div>' +
+            '<div class="field"><label>RDP Username (optional)</label><input id="mRdpUser" placeholder="Override login username"></div>' +
+            '<div class="field"><label>RDP Domain (optional)</label><input id="mRdpDomain" placeholder="e.g. WORKGROUP"></div>' +
+            '<div class="field"><label>RDP Password (optional)</label><input id="mRdpPassword" type="password" placeholder="Stored encrypted at rest"></div>' +
+            '<div class="field-check"><input type="checkbox" id="mUseMultimon"><label for="mUseMultimon">Span All Monitors</label></div>' +
+            '<div class="modal-actions">' +
+                '<button class="modal-btn cancel" onclick="App.closeModal()">Cancel</button>' +
+                '<button class="modal-btn submit" id="modalSubmit">Assign</button>' +
+            '</div>'
+        );
+        document.getElementById('modalSubmit').addEventListener('click', function() {
+            var body = {
+                userId: parseInt(document.getElementById('mUserId').value),
+                machineId: parseInt(document.getElementById('mMachineId').value),
+                rdpUsername: document.getElementById('mRdpUser').value.trim() || null,
+                rdpDomain: document.getElementById('mRdpDomain').value.trim() || null,
+                rdpPassword: document.getElementById('mRdpPassword').value || null,
+                useMultimon: document.getElementById('mUseMultimon').checked
+            };
+            this.disabled = true;
+            api('/api/admin/assignments', { method: 'POST', body: body }).then(function(r) {
+                if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
+                closeModal(); toast('Assignment created'); loadAssignments();
+            }).catch(function(e) { showErr(e.message); document.getElementById('modalSubmit').disabled = false; });
+        });
+    }
+
+    function deleteAssign(id) {
+        api('/api/admin/assignments/' + id, { method: 'DELETE' }).then(function() {
+            toast('Assignment removed'); loadAssignments();
+        });
+    }
+
+    /* ── Expose to inline onclick ── */
+    window.App = {
+        closeModal: closeModal,
+        editUser: function(id) { var u = users.find(function(x) { return x.id === id; }); if (u) userForm(u); },
+        deleteUser: confirmDeleteUser,
+        editMachine: function(id) { var m = machines.find(function(x) { return x.id === id; }); if (m) machineForm(m); },
+        deleteMachine: confirmDeleteMachine,
+        deleteAssign: deleteAssign
+    };
+
+    /* ── Event bindings ── */
+    document.getElementById('createUserBtn').addEventListener('click', function() { userForm(null); });
+    document.getElementById('createMachineBtn').addEventListener('click', function() { machineForm(null); });
+    document.getElementById('createAssignBtn').addEventListener('click', assignForm);
+
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+        var f = document.createElement('form'); f.method = 'POST'; f.action = '/logout';
+        var t = csrf();
+        if (t) { var i = document.createElement('input'); i.type = 'hidden'; i.name = '_csrf'; i.value = t; f.appendChild(i); }
+        document.body.appendChild(f); f.submit();
+    });
+
+    /* ── Init ── */
+    api('/api/me').then(function(r) { return r.json(); }).then(function(me) {
+        document.getElementById('userDisplay').textContent = me.displayName;
+        var b = document.getElementById('roleBadge'); b.textContent = me.role; b.style.display = '';
+        if (me.role !== 'ADMIN') { window.location.href = '/'; return; }
+        loadUsers(); loadMachines(); loadAssignments();
+    }).catch(function() { window.location.href = '/login'; });
+
+})();
+</script>
+
+</body>
+</html>

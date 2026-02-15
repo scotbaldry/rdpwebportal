@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RDP Web Portal — Sign In</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+        :root {
+            --bg-deep: #0a0e14;
+            --bg-surface: #111820;
+            --bg-card: #161d27;
+            --bg-card-hover: #1a2233;
+            --border-dim: #1e2a3a;
+            --border-accent: #2a3a4e;
+            --text-primary: #d4dae3;
+            --text-secondary: #6b7a8d;
+            --text-muted: #3d4f63;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.15);
+            --accent-bright: #60a5fa;
+            --error: #ef4444;
+            --error-bg: rgba(239, 68, 68, 0.08);
+            --error-border: rgba(239, 68, 68, 0.25);
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.08);
+            --success-border: rgba(34, 197, 94, 0.25);
+            --font-mono: 'IBM Plex Mono', 'Consolas', monospace;
+            --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
+        }
+
+        html { height: 100%; }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ── Animated topology background ── */
+        canvas#topology {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        /* ── Scanline overlay ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.03) 2px,
+                rgba(0,0,0,0.03) 4px
+            );
+        }
+
+        /* ── Vignette ── */
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 50%, var(--bg-deep) 100%);
+        }
+
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 420px;
+            padding: 1.5rem;
+            animation: fadeUp 0.6s ease-out both;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ── Branding ── */
+        .brand {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .brand-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-surface) 100%);
+            border: 1px solid var(--border-accent);
+            margin-bottom: 1.25rem;
+            box-shadow: 0 0 24px var(--accent-glow), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+
+        .brand-icon svg {
+            width: 28px;
+            height: 28px;
+            color: var(--accent-bright);
+            filter: drop-shadow(0 0 6px var(--accent-glow));
+        }
+
+        .brand h1 {
+            font-family: var(--font-mono);
+            font-size: 1.15rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+
+        .brand p {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.35rem;
+            letter-spacing: 0.02em;
+        }
+
+        /* ── Card ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.02) inset;
+            backdrop-filter: blur(8px);
+        }
+
+        /* ── Alerts ── */
+        .alert {
+            font-size: 0.82rem;
+            font-weight: 500;
+            padding: 0.7rem 0.9rem;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: fadeUp 0.4s ease-out both;
+        }
+
+        .alert-error {
+            background: var(--error-bg);
+            border: 1px solid var(--error-border);
+            color: var(--error);
+        }
+
+        .alert-success {
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+            color: var(--success);
+        }
+
+        .alert-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .alert-error .alert-dot { background: var(--error); }
+        .alert-success .alert-dot { background: var(--success); }
+
+        /* ── Form ── */
+        .field {
+            margin-bottom: 1.1rem;
+        }
+
+        .field label {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            font-weight: 500;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            margin-bottom: 0.45rem;
+        }
+
+        .field input {
+            width: 100%;
+            padding: 0.7rem 0.85rem;
+            font-family: var(--font-sans);
+            font-size: 0.92rem;
+            color: var(--text-primary);
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .field input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .field input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 0.6rem;
+            padding: 0.75rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: #fff;
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover {
+            background: var(--accent-bright);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .submit-btn:active {
+            transform: scale(0.985);
+        }
+
+        /* Shimmer sweep on button */
+        .submit-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);
+            transition: left 0.5s;
+        }
+
+        .submit-btn:hover::after {
+            left: 100%;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            position: relative;
+            z-index: 10;
+            margin-top: 2rem;
+            text-align: center;
+            animation: fadeUp 0.6s 0.15s ease-out both;
+        }
+
+        .footer span {
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            background: var(--success);
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+            box-shadow: 0 0 6px rgba(34,197,94,0.4);
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 480px) {
+            .card { padding: 1.5rem; }
+            .brand h1 { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="topology"></canvas>
+
+<div class="login-wrapper">
+    <div class="brand">
+        <div class="brand-icon">
+            <!-- Monitor/terminal icon -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <path d="M8 21h8"/>
+                <path d="M12 17v4"/>
+                <path d="M7 8h2"/>
+                <path d="M7 11h4"/>
+                <circle cx="16" cy="9.5" r="1.5"/>
+            </svg>
+        </div>
+        <h1>RDP Web Portal</h1>
+        <p>Remote Desktop Gateway</p>
+    </div>
+
+    <div class="card">
+        <div th:if="${param.error}" class="alert alert-error">
+            <span class="alert-dot"></span>
+            Invalid username or password
+        </div>
+        <div th:if="${param.logout}" class="alert alert-success">
+            <span class="alert-dot"></span>
+            Signed out successfully
+        </div>
+
+        <form th:action="@{/login}" method="post" autocomplete="on">
+            <div class="field">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter username" autofocus required />
+            </div>
+            <div class="field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" required />
+            </div>
+            <button type="submit" class="submit-btn">Sign In</button>
+        </form>
+    </div>
+</div>
+
+<div class="footer">
+    <span><i class="status-dot"></i>RDP Web Portal</span>
+</div>
+
+<script>
+    // ── Network topology background animation ──
+    (function() {
+        const canvas = document.getElementById('topology');
+        const ctx = canvas.getContext('2d');
+        let w, h, nodes = [];
+        const NODE_COUNT = 40;
+        const CONNECT_DIST = 160;
+        const ACCENT = [59, 130, 246];
+
+        function resize() {
+            w = canvas.width = window.innerWidth;
+            h = canvas.height = window.innerHeight;
+        }
+
+        function initNodes() {
+            nodes = [];
+            for (let i = 0; i < NODE_COUNT; i++) {
+                nodes.push({
+                    x: Math.random() * w,
+                    y: Math.random() * h,
+                    vx: (Math.random() - 0.5) * 0.35,
+                    vy: (Math.random() - 0.5) * 0.35,
+                    r: Math.random() * 1.5 + 0.5
+                });
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw connections
+            for (let i = 0; i < nodes.length; i++) {
+                for (let j = i + 1; j < nodes.length; j++) {
+                    const dx = nodes[i].x - nodes[j].x;
+                    const dy = nodes[i].y - nodes[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < CONNECT_DIST) {
+                        const alpha = (1 - dist / CONNECT_DIST) * 0.15;
+                        ctx.beginPath();
+                        ctx.moveTo(nodes[i].x, nodes[i].y);
+                        ctx.lineTo(nodes[j].x, nodes[j].y);
+                        ctx.strokeStyle = `rgba(${ACCENT[0]},${ACCENT[1]},${ACCENT[2]},${alpha})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // Draw nodes
+            for (const n of nodes) {
+                ctx.beginPath();
+                ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(${ACCENT[0]},${ACCENT[1]},${ACCENT[2]},0.35)`;
+                ctx.fill();
+
+                // Move
+                n.x += n.vx;
+                n.y += n.vy;
+                if (n.x < 0 || n.x > w) n.vx *= -1;
+                if (n.y < 0 || n.y > h) n.vy *= -1;
+            }
+
+            requestAnimationFrame(draw);
+        }
+
+        window.addEventListener('resize', () => { resize(); initNodes(); });
+        resize();
+        initNodes();
+        draw();
+    })();
+</script>
+
+</body>
+</html>
