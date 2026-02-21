@@ -1,6 +1,7 @@
 package com.rdpportal.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Table(name = "users")
@@ -25,6 +26,10 @@ public class User {
 
     @Column(nullable = false)
     private boolean enabled = true;
+
+    @ColumnDefault("false")
+    @Column(nullable = false)
+    private boolean useBatLauncher = false;
 
     public User() {}
 
@@ -52,4 +57,7 @@ public class User {
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    public boolean isUseBatLauncher() { return useBatLauncher; }
+    public void setUseBatLauncher(boolean useBatLauncher) { this.useBatLauncher = useBatLauncher; }
 }

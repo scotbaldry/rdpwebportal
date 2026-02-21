@@ -1,7 +1,9 @@
 package com.rdpportal.config;
 
+import com.rdpportal.model.AppSettings;
 import com.rdpportal.model.Role;
 import com.rdpportal.model.User;
+import com.rdpportal.repository.AppSettingsRepository;
 import com.rdpportal.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,16 +20,22 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbcTemplate;
+    private final AppSettingsRepository appSettingsRepository;
 
     public DataInitializer(UserRepository userRepository, PasswordEncoder passwordEncoder,
-                           JdbcTemplate jdbcTemplate) {
+                           JdbcTemplate jdbcTemplate, AppSettingsRepository appSettingsRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jdbcTemplate = jdbcTemplate;
+        this.appSettingsRepository = appSettingsRepository;
     }
 
     @Override
     public void run(String... args) {
+        if (!appSettingsRepository.existsById(1L)) {
+            appSettingsRepository.save(new AppSettings());
+        }
+
         if (userRepository.count() == 0) {
             User admin = new User(
                 "admin",

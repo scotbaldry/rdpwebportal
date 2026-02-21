@@ -331,6 +331,15 @@
             <span class="user-name" id="userDisplay"></span>
             <span class="role-badge" id="roleBadge" style="display:none"></span>
         </div>
+        <button class="header-btn" id="backupBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Backup
+        </button>
+        <input type="file" id="restoreFileInput" accept=".json" style="display:none">
+        <button class="header-btn" id="restoreBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Restore
+        </button>
         <a href="/" class="header-btn dash-link">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
             Dashboard
@@ -347,6 +356,7 @@
         <button class="tab-btn active" data-tab="users">Users</button>
         <button class="tab-btn" data-tab="machines">Machines</button>
         <button class="tab-btn" data-tab="assignments">Assignments</button>
+        <button class="tab-btn" data-tab="settings">Settings</button>
     </div>
 
     <!-- ═══ USERS TAB ═══ -->
@@ -405,11 +415,52 @@
             </table>
         </div>
     </div>
+
+    <!-- ═══ SETTINGS TAB ═══ -->
+    <div class="tab-panel" id="panel-settings">
+        <div class="toolbar">
+            <span class="section-label">Site Settings</span>
+        </div>
+        <div style="max-width:480px;padding:1.5rem 0">
+            <div style="margin-bottom:1.25rem">
+                <label style="display:block;font-size:0.8rem;font-weight:500;color:var(--text-secondary);margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em">Site Name</label>
+                <div style="display:flex;gap:0.6rem;align-items:center">
+                    <input id="siteNameInput" type="text" maxlength="64"
+                        style="flex:1;background:var(--bg-card);border:1px solid var(--border-accent);border-radius:6px;padding:0.5rem 0.75rem;color:var(--text-primary);font-size:0.9rem;font-family:var(--font-sans);outline:none"
+                        placeholder="e.g. Springfield">
+                    <button class="modal-btn submit" id="saveSiteNameBtn" style="white-space:nowrap">Save</button>
+                </div>
+                <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.5rem">
+                    Displayed as the portal title on the dashboard and browser tab.
+                </div>
+            </div>
+        </div>
+    </div>
 </main>
 
 <!-- ═══ MODAL ═══ -->
 <div class="modal-overlay" id="modalOverlay" hidden>
     <div class="modal" id="modalContent"></div>
+</div>
+
+<div class="modal-overlay" id="restoreOverlay" hidden>
+    <div class="modal" style="max-width:420px">
+        <div class="modal-title">Restore from Backup</div>
+        <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:0.75rem">
+            File: <strong id="restoreFileName" style="color:var(--text-primary)"></strong>
+        </p>
+        <p style="font-size:0.85rem;color:var(--warning);line-height:1.5;margin-bottom:0.5rem">
+            This will permanently delete all machines, assignments and non-admin users, then restore them from the backup. Admin accounts are preserved.
+        </p>
+        <p style="font-size:0.82rem;color:var(--text-secondary);line-height:1.5">
+            Restored non-admin users will have their <strong style="color:var(--text-primary)">username set as their temporary password</strong> (e.g. a user named <code style="background:var(--bg-card);padding:0.1em 0.35em;border-radius:3px">jsmith</code> logs in with password <code style="background:var(--bg-card);padding:0.1em 0.35em;border-radius:3px">jsmith</code>). Users should change this after first login.
+        </p>
+        <div id="restoreError" class="modal-error" hidden></div>
+        <div class="modal-actions">
+            <button class="modal-btn cancel" id="restoreCancelBtn">Cancel</button>
+            <button class="modal-btn danger" id="restoreConfirmBtn">Restore</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -791,6 +842,74 @@
     document.getElementById('createMachineBtn').addEventListener('click', function() { machineForm(null); });
     document.getElementById('createAssignBtn').addEventListener('click', assignForm);
 
+    document.getElementById('backupBtn').addEventListener('click', function() {
+        var a = document.createElement('a');
+        a.href = '/api/admin/backup';
+        a.download = '';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    });
+
+    /* ── Restore ── */
+    var restoreOverlay = document.getElementById('restoreOverlay');
+    var restoreFileInput = document.getElementById('restoreFileInput');
+    var pendingRestoreFile = null;
+
+    document.getElementById('restoreBtn').addEventListener('click', function() {
+        restoreFileInput.value = '';
+        restoreFileInput.click();
+    });
+
+    restoreFileInput.addEventListener('change', function() {
+        if (!restoreFileInput.files.length) return;
+        pendingRestoreFile = restoreFileInput.files[0];
+        document.getElementById('restoreFileName').textContent = pendingRestoreFile.name;
+        document.getElementById('restoreError').hidden = true;
+        document.getElementById('restoreConfirmBtn').disabled = false;
+        document.getElementById('restoreConfirmBtn').textContent = 'Restore';
+        restoreOverlay.removeAttribute('hidden');
+    });
+
+    document.getElementById('restoreCancelBtn').addEventListener('click', function() {
+        restoreOverlay.setAttribute('hidden', '');
+        pendingRestoreFile = null;
+    });
+
+    document.getElementById('restoreConfirmBtn').addEventListener('click', function() {
+        if (!pendingRestoreFile) return;
+        var btn = document.getElementById('restoreConfirmBtn');
+        btn.disabled = true;
+        btn.textContent = 'Restoring…';
+        document.getElementById('restoreError').hidden = true;
+
+        var formData = new FormData();
+        formData.append('file', pendingRestoreFile);
+
+        var t = csrf();
+        fetch('/api/admin/restore', {
+            method: 'POST',
+            headers: t ? { 'X-XSRF-TOKEN': t } : {},
+            credentials: 'same-origin',
+            body: formData
+        }).then(function(r) {
+            if (!r.ok) return r.text().then(function(msg) { throw new Error(msg || r.status); });
+            return r.json();
+        }).then(function(result) {
+            restoreOverlay.setAttribute('hidden', '');
+            pendingRestoreFile = null;
+            toast('Restored: ' + result.machines + ' machines, ' + result.users + ' users, ' + result.assignments + ' assignments.', 'success');
+            if (result.users > 0) toast(result.note, 'success');
+            loadUsers(); loadMachines(); loadAssignments();
+        }).catch(function(err) {
+            var errEl = document.getElementById('restoreError');
+            errEl.textContent = 'Restore failed: ' + err.message;
+            errEl.hidden = false;
+            btn.disabled = false;
+            btn.textContent = 'Restore';
+        });
+    });
+
     document.getElementById('logoutBtn').addEventListener('click', function() {
         var f = document.createElement('form'); f.method = 'POST'; f.action = '/logout';
         var t = csrf();
@@ -798,12 +917,37 @@
         document.body.appendChild(f); f.submit();
     });
 
+    /* ── Site Settings ── */
+    function loadSiteSettings() {
+        api('/api/admin/settings').then(function(r) { return r.json(); }).then(function(s) {
+            document.getElementById('siteNameInput').value = s.siteName || '';
+            document.querySelector('.header-title').textContent = s.siteName || 'RDP Web Portal';
+            document.title = (s.siteName || 'RDP Web Portal') + ' \u2014 Admin';
+        });
+    }
+
+    document.getElementById('saveSiteNameBtn').addEventListener('click', function() {
+        var name = document.getElementById('siteNameInput').value.trim();
+        if (!name) return;
+        var btn = this;
+        btn.disabled = true;
+        api('/api/admin/settings', { method: 'PUT', body: { siteName: name } })
+            .then(function(r) { return r.json(); })
+            .then(function(s) {
+                document.querySelector('.header-title').textContent = s.siteName;
+                document.title = s.siteName + ' \u2014 Admin';
+                toast('Site name updated to "' + s.siteName + '"', 'success');
+            })
+            .catch(function() { toast('Failed to save site name', 'error'); })
+            .finally(function() { btn.disabled = false; });
+    });
+
     /* ── Init ── */
     api('/api/me').then(function(r) { return r.json(); }).then(function(me) {
         document.getElementById('userDisplay').textContent = me.displayName;
         var b = document.getElementById('roleBadge'); b.textContent = me.role; b.style.display = '';
         if (me.role !== 'ADMIN') { window.location.href = '/'; return; }
-        loadUsers(); loadMachines(); loadAssignments();
+        loadUsers(); loadMachines(); loadAssignments(); loadSiteSettings();
     }).catch(function() { window.location.href = '/login'; });
 
 })();

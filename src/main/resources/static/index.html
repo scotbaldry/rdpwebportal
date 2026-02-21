@@ -485,6 +485,113 @@
             line-height: 1.5;
         }
 
+        /* ── Settings panel ── */
+        .settings-panel {
+            position: fixed;
+            top: 56px;
+            right: 0;
+            z-index: 200;
+            width: 340px;
+            max-width: 90vw;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-top: none;
+            border-radius: 0 0 0 12px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+            transform: translateY(-8px);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+        }
+
+        .settings-panel.open {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .settings-title {
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .setting-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.45;
+        }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-track {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
+            border-radius: 11px;
+            transition: all 0.25s;
+        }
+
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            transition: all 0.25s;
+        }
+
+        .toggle input:checked + .toggle-track {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .toggle input:checked + .toggle-track::after {
+            transform: translateX(18px);
+            background: #fff;
+        }
+
         /* ── Responsive ── */
         @media (max-width: 640px) {
             .header { padding: 0 1rem; }
@@ -512,6 +619,10 @@
             <span class="user-name" id="userDisplay"></span>
             <span class="role-badge" id="roleBadge" style="display:none"></span>
         </div>
+        <button class="header-btn" id="settingsBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            Settings
+        </button>
         <a href="/admin.html" class="header-btn admin-link" id="adminLink" style="display:none">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             Admin
@@ -522,6 +633,20 @@
         </button>
     </div>
 </header>
+
+<div class="settings-panel" id="settingsPanel">
+    <div class="settings-title">Settings</div>
+    <div class="setting-row">
+        <div class="setting-info">
+            <div class="setting-label">Auto-login launcher</div>
+            <div class="setting-desc">Download a .bat launcher that automatically logs in with saved credentials. When off, a standard .rdp file is downloaded without the password.</div>
+        </div>
+        <label class="toggle">
+            <input type="checkbox" id="batLauncherToggle">
+            <span class="toggle-track"></span>
+        </label>
+    </div>
+</div>
 
 <main class="main">
     <div id="loadingState" class="loading">
@@ -647,9 +772,10 @@
     // ── Initialize ──
     async function init() {
         try {
-            const [meRes, machinesRes] = await Promise.all([
+            const [meRes, machinesRes, settingsRes] = await Promise.all([
                 apiFetch('/api/me'),
-                apiFetch('/api/machines')
+                apiFetch('/api/machines'),
+                apiFetch('/api/settings')
             ]);
 
             if (!meRes.ok || !machinesRes.ok) {
@@ -662,6 +788,13 @@
 
             const me = await meRes.json();
             const connections = await machinesRes.json();
+            const settings = settingsRes.ok ? await settingsRes.json() : {};
+
+            // Apply site name
+            if (settings.siteName) {
+                document.querySelector('.header-title').textContent = settings.siteName;
+                document.title = settings.siteName + ' \u2014 Dashboard';
+            }
 
             // Populate header
             document.getElementById('userDisplay').textContent = me.displayName;
@@ -672,6 +805,9 @@
             if (me.role === 'ADMIN') {
                 document.getElementById('adminLink').style.display = '';
             }
+
+            // Initialize settings toggle
+            batToggle.checked = !!me.useBatLauncher;
 
             // Hide loading
             document.getElementById('loadingState').style.display = 'none';
@@ -693,6 +829,33 @@
                 '<div class="empty-desc">Please refresh the page or contact your administrator.</div>';
         }
     }
+
+    // ── Settings panel ──
+    var settingsBtn = document.getElementById('settingsBtn');
+    var settingsPanel = document.getElementById('settingsPanel');
+    var batToggle = document.getElementById('batLauncherToggle');
+
+    settingsBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        settingsPanel.classList.toggle('open');
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!settingsPanel.contains(e.target) && e.target !== settingsBtn) {
+            settingsPanel.classList.remove('open');
+        }
+    });
+
+    batToggle.addEventListener('change', function() {
+        var checked = this.checked;
+        apiFetch('/api/me/settings', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ useBatLauncher: checked })
+        }).catch(function() {
+            batToggle.checked = !checked;
+        });
+    });
 
     // ── Logout ──
     document.getElementById('logoutBtn').addEventListener('click', function() {
