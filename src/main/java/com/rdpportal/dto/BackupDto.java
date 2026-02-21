@@ -5,12 +5,16 @@ import java.util.List;
 public class BackupDto {
 
     private String exportedAt;
+    private String siteName;
     private List<UserBackup> users;
     private List<MachineBackup> machines;
     private List<AssignmentBackup> assignments;
 
     public String getExportedAt() { return exportedAt; }
     public void setExportedAt(String exportedAt) { this.exportedAt = exportedAt; }
+
+    public String getSiteName() { return siteName; }
+    public void setSiteName(String siteName) { this.siteName = siteName; }
 
     public List<UserBackup> getUsers() { return users; }
     public void setUsers(List<UserBackup> users) { this.users = users; }

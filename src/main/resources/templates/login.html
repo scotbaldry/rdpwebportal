@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RDP Web Portal — Sign In</title>
+    <title th:text="${siteName} + ' — Sign In'">RDP Web Portal — Sign In</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
@@ -322,7 +322,7 @@
                 <circle cx="16" cy="9.5" r="1.5"/>
             </svg>
         </div>
-        <h1>RDP Web Portal</h1>
+        <h1 th:text="${siteName}">RDP Web Portal</h1>
         <p>Remote Desktop Gateway</p>
     </div>
 
@@ -351,7 +351,7 @@
 </div>
 
 <div class="footer">
-    <span><i class="status-dot"></i>RDP Web Portal</span>
+    <span><i class="status-dot"></i><span th:text="${siteName}">RDP Web Portal</span></span>
 </div>
 
 <script>

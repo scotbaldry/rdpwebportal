@@ -161,6 +161,8 @@ public class AdminApiController {
     public ResponseEntity<BackupDto> backup() {
         BackupDto backup = new BackupDto();
         backup.setExportedAt(Instant.now().toString());
+        backup.setSiteName(appSettingsRepository.findById(1L)
+                .map(AppSettings::getSiteName).orElse("RDP Web Portal"));
 
         backup.setUsers(userRepository.findAll().stream().map(u -> {
             BackupDto.UserBackup ub = new BackupDto.UserBackup();
@@ -203,6 +205,13 @@ public class AdminApiController {
     @Transactional
     public ResponseEntity<Map<String, Object>> restore(@RequestParam("file") MultipartFile file) throws Exception {
         BackupDto backup = objectMapper.readValue(file.getInputStream(), BackupDto.class);
+
+        // 0. Restore site settings
+        if (backup.getSiteName() != null && !backup.getSiteName().isBlank()) {
+            AppSettings s = appSettingsRepository.findById(1L).orElseGet(AppSettings::new);
+            s.setSiteName(backup.getSiteName());
+            appSettingsRepository.save(s);
+        }
 
         // 1. Wipe all assignments and machines; preserve admin users
         assignmentRepository.deleteAll();
