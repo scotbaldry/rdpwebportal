@@ -95,12 +95,22 @@ public class MachineService {
             .orElseThrow(() -> new RuntimeException("User not found"));
         Machine machine = machineRepository.findById(machineId)
             .orElseThrow(() -> new RuntimeException("Machine not found"));
+        if (assignmentRepository.findByUserIdAndMachineId(userId, machineId).isPresent()) {
+            throw new RuntimeException("This machine is already assigned to the user");
+        }
         UserMachineAssignment assignment = new UserMachineAssignment(user, machine);
         assignment.setRdpUsername(rdpUsername);
         assignment.setRdpDomain(rdpDomain);
         assignment.setRdpPassword(rdpPassword);
         assignment.setUseMultimon(useMultimon);
         return new AssignmentDto(assignmentRepository.save(assignment));
+    }
+
+    public AssignmentDto setAssignmentMultimon(Long id, boolean useMultimon) {
+        UserMachineAssignment a = assignmentRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Assignment not found"));
+        a.setUseMultimon(useMultimon);
+        return new AssignmentDto(assignmentRepository.save(a));
     }
 
     @Transactional
