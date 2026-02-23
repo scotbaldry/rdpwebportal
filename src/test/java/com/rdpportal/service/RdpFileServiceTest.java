@@ -22,7 +22,7 @@ class RdpFileServiceTest {
     void generateRdpContent_defaultPort() {
         Machine machine = new Machine("Test VM", "192.168.1.100");
 
-        String content = rdpFileService.generateRdpContent(machine, null);
+        String content = rdpFileService.generateRdpContent(machine, null, true);
 
         assertTrue(content.startsWith("\uFEFF"));
         assertTrue(content.contains("full address:s:192.168.1.100\r\n"));
@@ -38,7 +38,7 @@ class RdpFileServiceTest {
         Machine machine = new Machine("Test VM", "10.0.0.5");
         machine.setRdpPort(3390);
 
-        String content = rdpFileService.generateRdpContent(machine, null);
+        String content = rdpFileService.generateRdpContent(machine, null, true);
 
         assertTrue(content.contains("full address:s:10.0.0.5:3390\r\n"));
     }
@@ -51,7 +51,7 @@ class RdpFileServiceTest {
         assignment.setRdpUsername("rdpuser");
         assignment.setRdpDomain("MYDOMAIN");
 
-        String content = rdpFileService.generateRdpContent(machine, assignment);
+        String content = rdpFileService.generateRdpContent(machine, assignment, true);
 
         assertTrue(content.contains("username:s:rdpuser\r\n"));
         assertTrue(content.contains("domain:s:MYDOMAIN\r\n"));
@@ -63,7 +63,7 @@ class RdpFileServiceTest {
         User user = new User("testuser", "pass", "Test User", Role.USER);
         UserMachineAssignment assignment = new UserMachineAssignment(user, machine);
 
-        String content = rdpFileService.generateRdpContent(machine, assignment);
+        String content = rdpFileService.generateRdpContent(machine, assignment, true);
 
         assertFalse(content.contains("username:s:"));
         assertFalse(content.contains("domain:s:"));
