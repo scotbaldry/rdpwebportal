@@ -13,7 +13,7 @@
 
     <groupId>com.rdpportal</groupId>
     <artifactId>rdpwebportal</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.3</version>
     <name>RDP Web Portal</name>
     <description>Self-hosted web portal for managing RDP connections to Hyper-V VMs</description>
 
@@ -78,6 +78,7 @@
                         <image>rdpwebportal</image>
                         <tags>
                             <tag>latest</tag>
+                            <tag>1.0.1</tag>
                         </tags>
                     </to>
                     <container>

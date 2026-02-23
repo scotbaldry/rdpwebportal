@@ -304,6 +304,13 @@
         }
         .icon-option.selected .icon-option-label { color: var(--accent-bright); }
 
+        /* ── Sortable columns ── */
+        thead th.sortable { cursor: pointer; user-select: none; }
+        thead th.sortable:hover { color: var(--text-secondary); background: var(--bg-card); }
+        .sort-icon { display: inline-block; margin-left: 0.3em; opacity: 0.3; font-size: 0.75em; vertical-align: middle; transition: opacity 0.15s; }
+        thead th.sort-asc .sort-icon,
+        thead th.sort-desc .sort-icon { opacity: 1; color: var(--accent-bright); }
+
         @media (max-width: 640px) {
             .header { padding: 0 1rem; }
             .header-title { display: none; }
@@ -370,7 +377,14 @@
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>ID</th><th>Username</th><th>Display Name</th><th>Role</th><th>Enabled</th><th>Actions</th></tr></thead>
+                <thead><tr>
+                    <th class="sortable" data-sort="id">ID <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="username">Username <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="displayName">Display Name <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="role">Role <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="enabled">Enabled <span class="sort-icon">⇅</span></th>
+                    <th>Actions</th>
+                </tr></thead>
                 <tbody id="usersBody">
                     <tr class="loading-row"><td colspan="6"><div class="loading-spinner"></div></td></tr>
                 </tbody>
@@ -389,7 +403,14 @@
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>ID</th><th>Display Name</th><th>Hostname</th><th>Port</th><th>Enabled</th><th>Actions</th></tr></thead>
+                <thead><tr>
+                    <th class="sortable" data-sort="id">ID <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="displayName">Display Name <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="hostname">Hostname <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="rdpPort">Port <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="enabled">Enabled <span class="sort-icon">⇅</span></th>
+                    <th>Actions</th>
+                </tr></thead>
                 <tbody id="machinesBody">
                     <tr class="loading-row"><td colspan="6"><div class="loading-spinner"></div></td></tr>
                 </tbody>
@@ -408,9 +429,17 @@
         </div>
         <div class="table-wrap">
             <table>
-                <thead><tr><th>ID</th><th>User</th><th>Machine</th><th>RDP User</th><th>RDP Domain</th><th>Multimon</th><th>Password</th><th>Actions</th></tr></thead>
+                <thead><tr>
+                    <th class="sortable" data-sort="id">ID <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="username">User <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="machineName">Machine <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="rdpUsername">RDP User <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="rdpDomain">RDP Domain <span class="sort-icon">⇅</span></th>
+                    <th class="sortable" data-sort="hasPassword">Password <span class="sort-icon">⇅</span></th>
+                    <th>Actions</th>
+                </tr></thead>
                 <tbody id="assignBody">
-                    <tr class="loading-row"><td colspan="8"><div class="loading-spinner"></div></td></tr>
+                    <tr class="loading-row"><td colspan="7"><div class="loading-spinner"></div></td></tr>
                 </tbody>
             </table>
         </div>
@@ -562,16 +591,48 @@
     /* ── Data stores ── */
     var users = [], machines = [], assignments = [];
 
+    /* ── Sorting ── */
+    var tableSort = {
+        users:       { col: null, dir: 1 },
+        machines:    { col: null, dir: 1 },
+        assignments: { col: null, dir: 1 }
+    };
+
+    function applySortTo(arr, col, dir) {
+        if (!col) return arr;
+        return arr.slice().sort(function(a, b) {
+            var av = a[col] == null ? '' : a[col];
+            var bv = b[col] == null ? '' : b[col];
+            if (typeof av === 'string') av = av.toLowerCase();
+            if (typeof bv === 'string') bv = bv.toLowerCase();
+            return av < bv ? -dir : av > bv ? dir : 0;
+        });
+    }
+
+    function refreshSortHeaders(panelId, col, dir) {
+        document.querySelectorAll('#' + panelId + ' thead th.sortable').forEach(function(th) {
+            th.classList.remove('sort-asc', 'sort-desc');
+            var icon = th.querySelector('.sort-icon');
+            if (icon) icon.textContent = '⇅';
+            if (th.dataset.sort === col) {
+                th.classList.add(dir === 1 ? 'sort-asc' : 'sort-desc');
+                if (icon) icon.textContent = dir === 1 ? '▲' : '▼';
+            }
+        });
+    }
+
     /* ════════════════════════════════════════
        USERS
     ════════════════════════════════════════ */
     function renderUsers() {
         var tb = document.getElementById('usersBody');
+        refreshSortHeaders('panel-users', tableSort.users.col, tableSort.users.dir);
         if (users.length === 0) {
             tb.innerHTML = '<tr class="empty-row"><td colspan="6">No users found</td></tr>';
             return;
         }
-        tb.innerHTML = users.map(function(u) {
+        var data = applySortTo(users, tableSort.users.col, tableSort.users.dir);
+        tb.innerHTML = data.map(function(u) {
             return '<tr>' +
                 '<td class="mono">' + u.id + '</td>' +
                 '<td>' + esc(u.username) + '</td>' +
@@ -636,6 +697,7 @@
     function confirmDeleteUser(id, name) {
         openModal(
             '<div class="modal-title">Delete User</div>' +
+            '<div class="modal-error" id="modalErr" hidden></div>' +
             '<p class="confirm-text">Permanently delete user <span class="confirm-name">' + esc(name) + '</span>? This will also remove all their machine assignments.</p>' +
             '<div class="modal-actions">' +
                 '<button class="modal-btn cancel" onclick="App.closeModal()">Cancel</button>' +
@@ -644,9 +706,10 @@
         );
         document.getElementById('modalSubmit').addEventListener('click', function() {
             this.disabled = true;
-            api('/api/admin/users/' + id, { method: 'DELETE' }).then(function() {
+            api('/api/admin/users/' + id, { method: 'DELETE' }).then(function(r) {
+                if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
                 closeModal(); toast('User deleted'); loadUsers(); loadAssignments();
-            });
+            }).catch(function(e) { showErr(e.message); document.getElementById('modalSubmit').disabled = false; });
         });
     }
 
@@ -655,11 +718,13 @@
     ════════════════════════════════════════ */
     function renderMachines() {
         var tb = document.getElementById('machinesBody');
+        refreshSortHeaders('panel-machines', tableSort.machines.col, tableSort.machines.dir);
         if (machines.length === 0) {
             tb.innerHTML = '<tr class="empty-row"><td colspan="6">No machines found</td></tr>';
             return;
         }
-        tb.innerHTML = machines.map(function(m) {
+        var data = applySortTo(machines, tableSort.machines.col, tableSort.machines.dir);
+        tb.innerHTML = data.map(function(m) {
             return '<tr>' +
                 '<td class="mono">' + m.id + '</td>' +
                 '<td>' + esc(m.displayName) + '</td>' +
@@ -742,6 +807,7 @@
     function confirmDeleteMachine(id, name) {
         openModal(
             '<div class="modal-title">Delete Machine</div>' +
+            '<div class="modal-error" id="modalErr" hidden></div>' +
             '<p class="confirm-text">Permanently delete <span class="confirm-name">' + esc(name) + '</span>? All assignments to this machine will be removed.</p>' +
             '<div class="modal-actions">' +
                 '<button class="modal-btn cancel" onclick="App.closeModal()">Cancel</button>' +
@@ -750,9 +816,10 @@
         );
         document.getElementById('modalSubmit').addEventListener('click', function() {
             this.disabled = true;
-            api('/api/admin/machines/' + id, { method: 'DELETE' }).then(function() {
+            api('/api/admin/machines/' + id, { method: 'DELETE' }).then(function(r) {
+                if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
                 closeModal(); toast('Machine deleted'); loadMachines(); loadAssignments();
-            });
+            }).catch(function(e) { showErr(e.message); document.getElementById('modalSubmit').disabled = false; });
         });
     }
 
@@ -761,18 +828,19 @@
     ════════════════════════════════════════ */
     function renderAssignments() {
         var tb = document.getElementById('assignBody');
+        refreshSortHeaders('panel-assignments', tableSort.assignments.col, tableSort.assignments.dir);
         if (assignments.length === 0) {
-            tb.innerHTML = '<tr class="empty-row"><td colspan="8">No assignments found</td></tr>';
+            tb.innerHTML = '<tr class="empty-row"><td colspan="7">No assignments found</td></tr>';
             return;
         }
-        tb.innerHTML = assignments.map(function(a) {
+        var data = applySortTo(assignments, tableSort.assignments.col, tableSort.assignments.dir);
+        tb.innerHTML = data.map(function(a) {
             return '<tr>' +
                 '<td class="mono">' + a.id + '</td>' +
                 '<td>' + esc(a.username) + '</td>' +
                 '<td>' + esc(a.machineName) + '</td>' +
                 '<td class="mono">' + esc(a.rdpUsername || '—') + '</td>' +
                 '<td class="mono">' + esc(a.rdpDomain || '—') + '</td>' +
-                '<td><span class="badge ' + (a.useMultimon ? 'badge-yes' : 'badge-no') + '">' + (a.useMultimon ? 'Yes' : 'No') + '</span></td>' +
                 '<td><span class="badge ' + (a.hasPassword ? 'badge-yes' : 'badge-no') + '">' + (a.hasPassword ? 'Set' : 'None') + '</span></td>' +
                 '<td class="row-actions">' +
                     '<button class="row-btn danger" onclick="App.deleteAssign(' + a.id + ')">Remove</button>' +
@@ -798,7 +866,6 @@
             '<div class="field"><label>RDP Username (optional)</label><input id="mRdpUser" placeholder="Override login username"></div>' +
             '<div class="field"><label>RDP Domain (optional)</label><input id="mRdpDomain" placeholder="e.g. WORKGROUP"></div>' +
             '<div class="field"><label>RDP Password (optional)</label><input id="mRdpPassword" type="password" placeholder="Stored encrypted at rest"></div>' +
-            '<div class="field-check"><input type="checkbox" id="mUseMultimon"><label for="mUseMultimon">Span All Monitors</label></div>' +
             '<div class="modal-actions">' +
                 '<button class="modal-btn cancel" onclick="App.closeModal()">Cancel</button>' +
                 '<button class="modal-btn submit" id="modalSubmit">Assign</button>' +
@@ -811,7 +878,7 @@
                 rdpUsername: document.getElementById('mRdpUser').value.trim() || null,
                 rdpDomain: document.getElementById('mRdpDomain').value.trim() || null,
                 rdpPassword: document.getElementById('mRdpPassword').value || null,
-                useMultimon: document.getElementById('mUseMultimon').checked
+                useMultimon: true
             };
             this.disabled = true;
             api('/api/admin/assignments', { method: 'POST', body: body }).then(function(r) {
@@ -822,9 +889,10 @@
     }
 
     function deleteAssign(id) {
-        api('/api/admin/assignments/' + id, { method: 'DELETE' }).then(function() {
+        api('/api/admin/assignments/' + id, { method: 'DELETE' }).then(function(r) {
+            if (!r.ok) return r.text().then(function(t) { throw new Error(t); });
             toast('Assignment removed'); loadAssignments();
-        });
+        }).catch(function(e) { toast(e.message, 'error'); });
     }
 
     /* ── Expose to inline onclick ── */
@@ -836,6 +904,23 @@
         deleteMachine: confirmDeleteMachine,
         deleteAssign: deleteAssign
     };
+
+    /* ── Sort header click bindings ── */
+    var sortRenderMap = { users: renderUsers, machines: renderMachines, assignments: renderAssignments };
+    ['users', 'machines', 'assignments'].forEach(function(tab) {
+        document.querySelectorAll('#panel-' + tab + ' thead th.sortable').forEach(function(th) {
+            th.addEventListener('click', function() {
+                var col = th.dataset.sort;
+                if (tableSort[tab].col === col) {
+                    tableSort[tab].dir *= -1;
+                } else {
+                    tableSort[tab].col = col;
+                    tableSort[tab].dir = 1;
+                }
+                sortRenderMap[tab]();
+            });
+        });
+    });
 
     /* ── Event bindings ── */
     document.getElementById('createUserBtn').addEventListener('click', function() { userForm(null); });
