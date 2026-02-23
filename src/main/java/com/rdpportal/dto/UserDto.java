@@ -9,6 +9,7 @@ public class UserDto {
     private String displayName;
     private Role role;
     private boolean enabled;
+    private boolean useBatLauncher;
 
     public UserDto() {}
 
@@ -18,6 +19,7 @@ public class UserDto {
         this.displayName = user.getDisplayName();
         this.role = user.getRole();
         this.enabled = user.isEnabled();
+        this.useBatLauncher = user.isUseBatLauncher();
     }
 
     public Long getId() { return id; }
@@ -34,4 +36,7 @@ public class UserDto {
 
     public boolean isEnabled() { return enabled; }
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
+
+    public boolean isUseBatLauncher() { return useBatLauncher; }
+    public void setUseBatLauncher(boolean useBatLauncher) { this.useBatLauncher = useBatLauncher; }
 }

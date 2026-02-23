@@ -348,30 +348,26 @@
             gap: 0.4rem;
         }
 
-        .card-monitor-mode {
-            font-family: var(--font-mono);
-            font-size: 0.68rem;
-            color: var(--text-muted);
-            margin-bottom: 0.75rem;
+        .card-monitor-row {
             display: flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.6rem;
+            margin-bottom: 0.75rem;
+            padding: 0.35rem 0.6rem;
+            border-radius: 6px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-dim);
         }
 
-        .card-monitor-mode svg {
-            width: 14px;
-            height: 14px;
-            flex-shrink: 0;
-            opacity: 0.6;
+        .card-monitor-label {
+            font-family: var(--font-mono);
+            font-size: 0.67rem;
+            color: var(--text-secondary);
+            flex: 1;
+            user-select: none;
         }
 
-        .card-monitor-mode.multimon {
-            color: var(--accent-bright);
-        }
-
-        .card-monitor-mode.multimon svg {
-            opacity: 0.9;
-        }
+        .card-monitor-row .toggle { margin-top: 0; }
 
         .card-credentials svg {
             width: 12px;
@@ -726,20 +722,15 @@
                 '</div>';
         }
 
-        var monitorHtml = '';
-        if (conn.useMultimon) {
-            monitorHtml =
-                '<div class="card-monitor-mode multimon">' +
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="10" height="8" rx="1"/><rect x="13" y="3" width="10" height="8" rx="1"/><path d="M6 15v2"/><path d="M18 15v2"/><path d="M3 17h6"/><path d="M15 17h6"/></svg>' +
-                    'All Monitors' +
-                '</div>';
-        } else {
-            monitorHtml =
-                '<div class="card-monitor-mode">' +
-                    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>' +
-                    'Single Screen' +
-                '</div>';
-        }
+        var monitorToggleId = 'multimon-' + conn.assignmentId;
+        var monitorHtml =
+            '<div class="card-monitor-row">' +
+                '<label class="toggle">' +
+                    '<input type="checkbox" id="' + monitorToggleId + '" checked>' +
+                    '<span class="toggle-track"></span>' +
+                '</label>' +
+                '<label class="card-monitor-label" for="' + monitorToggleId + '">Span All Monitors</label>' +
+            '</div>';
 
         card.innerHTML =
             '<div class="card-header">' +
@@ -757,7 +748,8 @@
             '</button>';
 
         card.querySelector('.connect-btn').addEventListener('click', function() {
-            window.location.href = '/api/assignments/' + conn.assignmentId + '/rdp';
+            var multimon = card.querySelector('#' + monitorToggleId).checked;
+            window.location.href = '/api/assignments/' + conn.assignmentId + '/rdp?multimon=' + multimon;
         });
 
         return card;

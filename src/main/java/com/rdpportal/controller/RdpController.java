@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
@@ -37,6 +38,7 @@ public class RdpController {
     @GetMapping("/assignments/{id}/rdp")
     public ResponseEntity<byte[]> downloadRdp(
             @PathVariable Long id,
+            @RequestParam(defaultValue = "true") boolean multimon,
             @AuthenticationPrincipal UserDetails userDetails) {
 
         User user = userRepository.findByUsername(userDetails.getUsername())
@@ -51,27 +53,29 @@ public class RdpController {
 
         Machine machine = assignment.getMachine();
 
-        if (rdpFileService.hasPassword(assignment)) {
-            // Generate a .bat launcher that stores credentials via cmdkey
-            String content = rdpFileService.generateBatLauncher(machine, assignment);
-            String filename = rdpFileService.getBatFilename(machine);
-            byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
+        boolean useBat = user.isUseBatLauncher()
+                && assignment.getRdpPassword() != null
+                && !assignment.getRdpPassword().isBlank();
 
-            return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .contentLength(bytes.length)
-                .body(bytes);
+        String content;
+        String filename;
+        String contentType;
+
+        if (useBat) {
+            content = rdpFileService.generateBatContent(machine, assignment, multimon);
+            filename = rdpFileService.getFilename(machine, true);
+            contentType = "application/bat";
+        } else {
+            content = rdpFileService.generateRdpContent(machine, assignment, multimon);
+            filename = rdpFileService.getFilename(machine, false);
+            contentType = "application/x-rdp";
         }
 
-        // No password — serve a standard .rdp file
-        String content = rdpFileService.generateRdpContent(machine, assignment);
-        String filename = rdpFileService.getFilename(machine);
         byte[] bytes = content.getBytes(StandardCharsets.UTF_8);
 
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-            .contentType(MediaType.parseMediaType("application/x-rdp"))
+            .contentType(MediaType.parseMediaType(contentType))
             .contentLength(bytes.length)
             .body(bytes);
     }
